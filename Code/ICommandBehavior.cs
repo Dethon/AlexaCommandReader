@@ -5,6 +5,6 @@ using Microsoft.Extensions.Logging;
 
 namespace AlexaCommandReader {
     public interface ICommandBehavior {
-        public Task MessageBehavior(AlexaMessageDTO parsedMessage, Message message, MessageReceiver messageReceiver, ILogger logger);
+        public Task MessageBehavior(Message message, MessageReceiver messageReceiver, ILogger logger);
     }
 }
