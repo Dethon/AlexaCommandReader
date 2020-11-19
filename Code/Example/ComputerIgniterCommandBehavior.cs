@@ -1,5 +1,4 @@
 ﻿using System.Text;
-using System.Diagnostics;
 using System.Threading.Tasks;
 using System;
 using Microsoft.Azure.ServiceBus;
@@ -9,14 +8,27 @@ using Newtonsoft.Json;
 using AlexaCommandReader;
 
 namespace AlexaCommandReaderExample {
-    public class ComputerIgniterCommanBehavior : ICommandBehavior {
+    public class ComputerIgniterCommandBehavior : ICommandBehavior {
         private const string computerOn = "computerOn";
         private const string computerOff = "computerOff";
         private const string prepareForWork = "prepareForWork";
 
-        private const string shell = "Shell";
         private const string startupCommand = "StartupCommand";
         private const string shutdownCommand = "ShutdownCommand";
+
+        private const string receiverQueueName = "ReceiverQueueName";
+
+        private readonly QueueClient m_queue;
+
+        public ComputerIgniterCommandBehavior() {
+            m_queue = new QueueClient(
+                Environment.GetEnvironmentVariable(VariableName.serviceBusUri), 
+                Environment.GetEnvironmentVariable(receiverQueueName));
+        }
+
+        ~ComputerIgniterCommandBehavior() {
+            m_queue.CloseAsync().Wait();
+        }
 
         public async Task MessageBehavior(Message message, MessageReceiver messageReceiver, ILogger logger) {
             var parsedMessage = JsonConvert.DeserializeObject<AlexaMessageDTO>(Encoding.UTF8.GetString(message.Body));
@@ -24,26 +36,17 @@ namespace AlexaCommandReaderExample {
 
             switch (parsedMessage.Intent) {
                 case computerOn:
-                    LaunchScript(Environment.GetEnvironmentVariable(shell), Environment.GetEnvironmentVariable(startupCommand));
+                    ProcessLauncher.LaunchProcess(Environment.GetEnvironmentVariable(startupCommand));
                     break;
                 case computerOff:
-                    LaunchScript(Environment.GetEnvironmentVariable(shell), Environment.GetEnvironmentVariable(shutdownCommand));
+                    ProcessLauncher.LaunchProcess(Environment.GetEnvironmentVariable(shutdownCommand));
                     break;
                 case prepareForWork:
+                    ProcessLauncher.LaunchProcess(Environment.GetEnvironmentVariable(startupCommand));
+                    await m_queue.SendAsync(new Message(message.Body));
                     break;
             }
-
             await messageReceiver.CompleteAsync(message.SystemProperties.LockToken);
-        }
-
-        private void LaunchScript(string executable, string args) {
-            Process proc = new Process() { 
-                StartInfo = new ProcessStartInfo() { 
-                    FileName = executable,
-                    Arguments = args
-                } 
-            };
-            proc.Start();
         }
     }
 }
