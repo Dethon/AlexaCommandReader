@@ -9,8 +9,8 @@ To add custo behavior to yur messages you need to implement the `MessageBehavior
 
 ## Settings
 The function uses some settings that must be configured for your use case:
-    `QueueName`: The name of your Azure Service Bus queue.
-    `ServiceBusConnection`: The connection string to your Azure Service Bus namespace.
+* `QueueName`: The name of your Azure Service Bus queue.
+* `ServiceBusConnection`: The connection string to your Azure Service Bus namespace.
 
 These setting names are defined as constants within `VariableName`.
 
