@@ -5,7 +5,7 @@ A companion to the Alexa Enqueuer Azure Function.
 ## Objective
 This reads an Azure Service Bus queue and performs custom actions when messages arrive. The aim was to be able to control my devices through Alexa.
 
-To add custom behavior to yur messages you need to implement the `MessageBehavior()` method from `ICommandBehavior` in a subclass and inject it into the service. You can see an example in the `Code/Example` folder.
+To add custom behavior to your messages you need to implement the `MessageBehavior()` method from `ICommandBehavior` in a subclass and inject it into the service. You can see an example in the `Code/Example` folder.
 
 ## Settings
 The function uses some settings that must be configured for your use case:
