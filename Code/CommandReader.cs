@@ -1,8 +1,7 @@
-﻿using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
-using Microsoft.Azure.ServiceBus;
-using Microsoft.Azure.ServiceBus.Core;
+﻿using Azure.Messaging.ServiceBus;
 using Microsoft.Azure.WebJobs;
+using Microsoft.Azure.WebJobs.ServiceBus;
+using Microsoft.Extensions.Logging;
 
 namespace AlexaCommandReader {
     public class CommandReader {
@@ -12,8 +11,11 @@ namespace AlexaCommandReader {
             m_commandBehavior = commandBehavior;
         }
 
-        public async Task ProcessServiceBus([ServiceBusTrigger("%" + VariableName.queue + "%", Connection = VariableName.serviceBusUri)] Message message, MessageReceiver messageReceiver, ILogger logger) {
-            await m_commandBehavior.MessageBehavior(message, messageReceiver, logger);
+        public async Task ProcessServiceBus(
+            [ServiceBusTrigger("%" + VariableName.queue + "%", Connection = VariableName.serviceBusUri)] ServiceBusReceivedMessage message, 
+            ServiceBusMessageActions messageActions, 
+            ILogger logger) {
+            await m_commandBehavior.MessageBehavior(message, messageActions, logger);
         }
     }
 }

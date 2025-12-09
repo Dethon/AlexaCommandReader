@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace AlexaCommandReader {
+﻿namespace AlexaCommandReader {
     public static class VariableName {
-        // Use your own setting names
-        public const string queue = "QueueName";
-        public const string serviceBusUri = "ServiceBusConnection";
+        // Configuration keys used by WebJobs ServiceBusTrigger attribute
+        // These reference paths in appsettings.json using colon notation
+        public const string queue = "ServiceBus:QueueName";
+        public const string serviceBusUri = "ServiceBus:ServiceBusConnection";
     }
 }

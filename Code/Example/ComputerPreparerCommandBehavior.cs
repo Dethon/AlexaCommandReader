@@ -1,29 +1,31 @@
 ﻿using System.Text;
-using System.Threading.Tasks;
-using System;
-using Microsoft.Azure.ServiceBus;
-using Microsoft.Azure.ServiceBus.Core;
+using System.Text.Json;
+using Azure.Messaging.ServiceBus;
+using Microsoft.Azure.WebJobs.ServiceBus;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
+using Microsoft.Extensions.Options;
 using AlexaCommandReader;
 
 namespace AlexaCommandReaderExample {
     public class ComputerPreparerCommandBehavior : ICommandBehavior {
         private const string prepareForWork = "prepareForWork";
 
-        private const string console = "Console";
-        private const string prepareForWorkConsoleCommand = "PrepareForWorkConsoleCommand";
+        private readonly ComputerPreparerSettings m_settings;
 
-        public async Task MessageBehavior(Message message, MessageReceiver messageReceiver, ILogger logger) {
-            var parsedMessage = JsonConvert.DeserializeObject<AlexaMessageDTO>(Encoding.UTF8.GetString(message.Body));
-            logger.LogInformation($"Received message: {parsedMessage.Skill} - {parsedMessage.Intent}");
+        public ComputerPreparerCommandBehavior(IOptions<ComputerPreparerSettings> settings) {
+            m_settings = settings.Value;
+        }
 
-            switch (parsedMessage.Intent) {
+        public async Task MessageBehavior(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, ILogger logger) {
+            var parsedMessage = JsonSerializer.Deserialize<AlexaMessageDTO>(Encoding.UTF8.GetString(message.Body));
+            logger.LogInformation($"Received message: {parsedMessage?.Skill} - {parsedMessage?.Intent}");
+
+            switch (parsedMessage?.Intent) {
                 case prepareForWork:
-                    ProcessLauncher.LaunchProcess(Environment.GetEnvironmentVariable(console), Environment.GetEnvironmentVariable(prepareForWorkConsoleCommand));
+                    ProcessLauncher.LaunchProcess(m_settings.Console, m_settings.PrepareForWorkConsoleCommand);
                     break;
             }
-            await messageReceiver.CompleteAsync(message.SystemProperties.LockToken);
+            await messageActions.CompleteMessageAsync(message);
         }   
     }
 }

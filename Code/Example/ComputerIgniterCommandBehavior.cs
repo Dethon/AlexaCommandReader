@@ -1,10 +1,9 @@
 ﻿using System.Text;
-using System.Threading.Tasks;
-using System;
-using Microsoft.Azure.ServiceBus;
-using Microsoft.Azure.ServiceBus.Core;
+using System.Text.Json;
+using Azure.Messaging.ServiceBus;
+using Microsoft.Azure.WebJobs.ServiceBus;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
+using Microsoft.Extensions.Options;
 using AlexaCommandReader;
 
 namespace AlexaCommandReaderExample {
@@ -13,40 +12,35 @@ namespace AlexaCommandReaderExample {
         private const string computerOff = "computerOff";
         private const string prepareForWork = "prepareForWork";
 
-        private const string startupCommand = "StartupCommand";
-        private const string shutdownCommand = "ShutdownCommand";
+        private readonly ServiceBusSender m_sender;
+        private readonly ServiceBusClient m_client;
+        private readonly ComputerIgniterSettings m_settings;
+        private readonly ServiceBusSettings m_serviceBusSettings;
 
-        private const string receiverQueueName = "ReceiverQueueName";
-
-        private readonly QueueClient m_queue;
-
-        public ComputerIgniterCommandBehavior() {
-            m_queue = new QueueClient(
-                Environment.GetEnvironmentVariable(VariableName.serviceBusUri), 
-                Environment.GetEnvironmentVariable(receiverQueueName));
+        public ComputerIgniterCommandBehavior(IOptions<ComputerIgniterSettings> settings, IOptions<ServiceBusSettings> serviceBusSettings) {
+            m_settings = settings.Value;
+            m_serviceBusSettings = serviceBusSettings.Value;
+            m_client = new ServiceBusClient(m_serviceBusSettings.ServiceBusConnection);
+            m_sender = m_client.CreateSender(m_settings.ReceiverQueueName);
         }
 
-        ~ComputerIgniterCommandBehavior() {
-            m_queue.CloseAsync().Wait();
-        }
+        public async Task MessageBehavior(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, ILogger logger) {
+            var parsedMessage = JsonSerializer.Deserialize<AlexaMessageDTO>(Encoding.UTF8.GetString(message.Body));
+            logger.LogInformation($"Received message: {parsedMessage?.Skill} - {parsedMessage?.Intent}");
 
-        public async Task MessageBehavior(Message message, MessageReceiver messageReceiver, ILogger logger) {
-            var parsedMessage = JsonConvert.DeserializeObject<AlexaMessageDTO>(Encoding.UTF8.GetString(message.Body));
-            logger.LogInformation($"Received message: {parsedMessage.Skill} - {parsedMessage.Intent}");
-
-            switch (parsedMessage.Intent) {
+            switch (parsedMessage?.Intent) {
                 case computerOn:
-                    ProcessLauncher.LaunchProcess(Environment.GetEnvironmentVariable(startupCommand));
+                    ProcessLauncher.LaunchProcess(m_settings.StartupCommand);
                     break;
                 case computerOff:
-                    ProcessLauncher.LaunchProcess(Environment.GetEnvironmentVariable(shutdownCommand));
+                    ProcessLauncher.LaunchProcess(m_settings.ShutdownCommand);
                     break;
                 case prepareForWork:
-                    ProcessLauncher.LaunchProcess(Environment.GetEnvironmentVariable(startupCommand));
-                    await m_queue.SendAsync(new Message(message.Body));
+                    ProcessLauncher.LaunchProcess(m_settings.StartupCommand);
+                    await m_sender.SendMessageAsync(new ServiceBusMessage(message.Body));
                     break;
             }
-            await messageReceiver.CompleteAsync(message.SystemProperties.LockToken);
+            await messageActions.CompleteMessageAsync(message);
         }
     }
 }

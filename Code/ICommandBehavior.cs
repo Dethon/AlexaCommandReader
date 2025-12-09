@@ -1,10 +1,9 @@
-﻿using System.Threading.Tasks;
-using Microsoft.Azure.ServiceBus;
-using Microsoft.Azure.ServiceBus.Core;
+﻿using Azure.Messaging.ServiceBus;
+using Microsoft.Azure.WebJobs.ServiceBus;
 using Microsoft.Extensions.Logging;
 
 namespace AlexaCommandReader {
     public interface ICommandBehavior {
-        public Task MessageBehavior(Message message, MessageReceiver messageReceiver, ILogger logger);
+        public Task MessageBehavior(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, ILogger logger);
     }
 }
